@@ -2,6 +2,7 @@
  * Auth-Core public API.
  * @description Exports auth validation and shared types.
  */
+export { Cipher } from '@app/Cipher.ts'
 export { Email } from '@app/Email.ts'
 export { Fullname } from '@app/Fullname.ts'
 export { Hostname } from '@app/Hostname.ts'

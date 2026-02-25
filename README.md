@@ -14,6 +14,24 @@ deno add jsr:@neabyte/auth-core
 
 Non-string input is treated as invalid: validators return `false` or `null` or `{ valid: false, errors: ['… must be a string'] }`. Invalid length options (e.g. `minLength` &gt; `maxLength`) yield `{ valid: false, errors: ['Invalid … length options'] }`.
 
+### Cipher
+
+Two-way AES-256-GCM encrypt and decrypt with a shared secret. Uses PBKDF2 (SHA-256, 100k iterations) for key derivation; random salt and IV per encryption. Output is base64url-safe for URLs.
+
+```typescript
+import { Cipher } from '@neabyte/auth-core'
+
+// Encrypt plaintext (e.g. token or payload)
+const encrypted = await Cipher.encrypt('sensitive data', 'your-secret')
+// e.g. 'xYz...' (base64url)
+
+// Decrypt with same secret; null if invalid or wrong secret
+const plain = await Cipher.decrypt(encrypted, 'your-secret')
+// 'sensitive data'
+```
+
+Wrong secret, corrupted payload, or invalid base64url yield `null` from `decrypt()`.
+
 ### Email
 
 Validate format, normalize, and extract domain or local part. Options override defaults. Email has no `validate()`; use `isValid()` for a boolean check.
@@ -45,6 +63,44 @@ Email.isValid('"Jane" <jane@example.com>', { allowDisplayName: true })
 Email.normalize('"Jane" <jane@example.com>', { lowercaseLocal: true })
 // 'jane@example.com'
 ```
+
+### Fullname
+
+Validate and normalize full names: conservative subset for formatted name (Unicode letters, space, hyphen, apostrophe; optional digits). Aligned with RFC 6350 (vCard FN) and Unicode per RFC 7700. Options: `minLength`, `maxLength` (default 2–128), `allowDigits`, `titleCase` (for normalize).
+
+```typescript
+import { Fullname } from '@neabyte/auth-core'
+
+Fullname.isValid('Jane Doe')
+// true
+
+Fullname.normalize('  jane   DOE  ')
+// 'Jane Doe'
+
+Fullname.validate("Jean-Pierre O'Brien")
+// { valid: true, errors: [] }
+```
+
+Invalid characters or length outside range yield `false` / `null` / `{ valid: false, errors: [...] }`. Normalize trims, collapses spaces, and applies title-case by default.
+
+### Hostname (SNI / DNS)
+
+Validate and normalize hostnames for TLS Server Name Indication (SNI) or DNS. Follows RFC 1035 (lengths), RFC 1123 (label charset), RFC 6066 (SNI), IDNA via punycode (RFC 5890/5891). Options: `minLength`, `maxLength` (default 1–253). No leading/trailing dot.
+
+```typescript
+import { Hostname } from '@neabyte/auth-core'
+
+Hostname.isValid('api.example.com')
+// true
+
+Hostname.normalize('  API.Example.COM  ')
+// 'api.example.com'
+
+Hostname.validate('api.example.com')
+// { valid: true, errors: [] }
+```
+
+Invalid labels (e.g. leading/trailing dot or hyphen, label &gt; 63 chars), invalid IDNA, or length outside range yield `false` / `null` / `{ valid: false, errors: [...] }`.
 
 ### Password
 
@@ -103,44 +159,6 @@ Username.normalize('  ab  ', { minLength: 2, maxLength: 32 })
 // 'ab'
 ```
 
-### Hostname (SNI / DNS)
-
-Validate and normalize hostnames for TLS Server Name Indication (SNI) or DNS. Follows RFC 1035 (lengths), RFC 1123 (label charset), RFC 6066 (SNI), IDNA via punycode (RFC 5890/5891). Options: `minLength`, `maxLength` (default 1–253). No leading/trailing dot.
-
-```typescript
-import { Hostname } from '@neabyte/auth-core'
-
-Hostname.isValid('api.example.com')
-// true
-
-Hostname.normalize('  API.Example.COM  ')
-// 'api.example.com'
-
-Hostname.validate('api.example.com')
-// { valid: true, errors: [] }
-```
-
-Invalid labels (e.g. leading/trailing dot or hyphen, label &gt; 63 chars), invalid IDNA, or length outside range yield `false` / `null` / `{ valid: false, errors: [...] }`.
-
-### Fullname
-
-Validate and normalize full names: conservative subset for formatted name (Unicode letters, space, hyphen, apostrophe; optional digits). Aligned with RFC 6350 (vCard FN) and Unicode per RFC 7700. Options: `minLength`, `maxLength` (default 2–128), `allowDigits`, `titleCase` (for normalize).
-
-```typescript
-import { Fullname } from '@neabyte/auth-core'
-
-Fullname.isValid('Jane Doe')
-// true
-
-Fullname.normalize('  jane   DOE  ')
-// 'Jane Doe'
-
-Fullname.validate("Jean-Pierre O'Brien")
-// { valid: true, errors: [] }
-```
-
-Invalid characters or length outside range yield `false` / `null` / `{ valid: false, errors: [...] }`. Normalize trims, collapses spaces, and applies title-case by default.
-
 ### Utils
 
 Shared helpers for validation, string normalization, and crypto random. Static-only; do not instantiate.
@@ -174,6 +192,8 @@ Utils.toValidationResult(errors)
 
 | Method                       | Category | Description                                                             |
 | :--------------------------- | :------- | :---------------------------------------------------------------------- |
+| `Cipher.decrypt`             | Cipher   | Decrypts base64url payload; returns plaintext or null if invalid.       |
+| `Cipher.encrypt`             | Cipher   | Encrypts plaintext with shared secret; returns base64url string.        |
 | `Email.getDomain`            | Email    | Extracts domain part (lowercased).                                      |
 | `Email.getLocalPart`         | Email    | Extracts local part (before `@`). No `Email.validate()`; use `isValid`. |
 | `Email.isValid`              | Email    | Returns true when email format and length are valid.                    |
@@ -205,6 +225,28 @@ Utils.toValidationResult(errors)
 | `Utils.toValidationResult`   | Utils    | Builds `{ valid, errors }` from error array.                            |
 
 ## API Reference
+
+### Cipher.decrypt
+
+```typescript
+Cipher.decrypt(encryptedBase64Url, secret)
+```
+
+- `encryptedBase64Url` `<string>`: Output from `Cipher.encrypt()`.
+- `secret` `<string>`: Shared secret used to encrypt.
+- Returns: `Promise<string | null>`
+- Description: Decrypts payload. Returns plaintext or null when secret is wrong, payload is corrupted, or input is invalid.
+
+### Cipher.encrypt
+
+```typescript
+Cipher.encrypt(plaintext, secret)
+```
+
+- `plaintext` `<string>`: String to encrypt.
+- `secret` `<string>`: Shared secret (e.g. API key); same secret required for decrypt.
+- Returns: `Promise<string>`
+- Description: Encrypts with AES-256-GCM; random salt and IV per call. Returns base64url string safe for URLs.
 
 ### Email.getDomain
 
