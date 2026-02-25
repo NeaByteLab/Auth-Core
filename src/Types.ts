@@ -1,27 +1,3 @@
-/** Optional min max length user input. */
-export type MinMaxOptions = {
-  /** Maximum length allowed */
-  maxLength?: number
-  /** Minimum length required */
-  minLength?: number
-}
-
-/** Resolved min max length range. */
-export type ResolvedMinMax = {
-  /** Maximum length */
-  maxLength: number
-  /** Minimum length */
-  minLength: number
-}
-
-/** Validation result valid flag and errors. */
-export type ValidationResult = {
-  /** Error messages when invalid */
-  errors: string[]
-  /** True when no errors */
-  valid: boolean
-}
-
 /** Email addr-spec local and domain. */
 export type AddrSpecParts = {
   /** Domain part after @ */
@@ -42,6 +18,31 @@ export type EmailOptions = {
   localPartMaxLength?: number
   /** Max full address length */
   maxLength?: number
+}
+
+/** Fullname validation options. */
+export type FullnameOptions = MinMaxOptions & {
+  /** Allow digits in name */
+  allowDigits?: boolean
+  /** Title-case each word when normalizing */
+  titleCase?: boolean
+}
+
+/** Fullname validation result. */
+export type FullnameResult = ValidationResult
+
+/** Hostname (e.g. SNI) validation options. */
+export type HostnameOptions = MinMaxOptions
+
+/** Hostname validation result. */
+export type HostnameResult = ValidationResult
+
+/** Optional min max length user input. */
+export type MinMaxOptions = {
+  /** Maximum length allowed */
+  maxLength?: number
+  /** Minimum length required */
+  minLength?: number
 }
 
 /** Email normalize options. */
@@ -76,6 +77,25 @@ export type PasswordStrengthResult = {
   score: number
 }
 
+/** Resolved fullname options. */
+export type ResolvedFullnameOptions = ResolvedMinMax & {
+  /** Digits allowed */
+  allowDigits: boolean
+  /** Title-case when normalizing */
+  titleCase: boolean
+}
+
+/** Resolved hostname options. */
+export type ResolvedHostnameOptions = ResolvedMinMax
+
+/** Resolved min max length range. */
+export type ResolvedMinMax = {
+  /** Maximum length */
+  maxLength: number
+  /** Minimum length */
+  minLength: number
+}
+
 /** Resolved password options. */
 export type ResolvedPasswordOptions = ResolvedMinMax & {
   /** Digit required */
@@ -96,3 +116,11 @@ export type UsernameOptions = MinMaxOptions
 
 /** Username validation result. */
 export type UsernameResult = ValidationResult
+
+/** Validation result valid flag and errors. */
+export type ValidationResult = {
+  /** Error messages when invalid */
+  errors: string[]
+  /** True when no errors */
+  valid: boolean
+}

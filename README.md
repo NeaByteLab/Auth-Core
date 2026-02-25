@@ -12,9 +12,11 @@ deno add jsr:@neabyte/auth-core
 
 ## Usage
 
+Non-string input is treated as invalid: validators return `false` or `null` or `{ valid: false, errors: ['… must be a string'] }`. Invalid length options (e.g. `minLength` &gt; `maxLength`) yield `{ valid: false, errors: ['Invalid … length options'] }`.
+
 ### Email
 
-Validate format, normalize, and extract domain or local part. Options override defaults.
+Validate format, normalize, and extract domain or local part. Options override defaults. Email has no `validate()`; use `isValid()` for a boolean check.
 
 ```typescript
 import { Email } from '@neabyte/auth-core'
@@ -67,9 +69,9 @@ Password.validate('short', { minLength: 8 })
 
 // Strength category and score (0–100)
 Password.strength('p4ssW0rd!')
-// { category: 'strong', score: 100 }
+// { category: 'strong', score: 85 }
 
-// Generate random password satisfying options
+// Generate random password satisfying options (length capped at 1024)
 Password.generate({ minLength: 12, requireUppercase: true, requireDigit: true })
 // e.g. 'Kx7mNp2Qw9Lb'
 ```
@@ -101,45 +103,108 @@ Username.normalize('  ab  ', { minLength: 2, maxLength: 32 })
 // 'ab'
 ```
 
+### Hostname (SNI / DNS)
+
+Validate and normalize hostnames for TLS Server Name Indication (SNI) or DNS. Follows RFC 1035 (lengths), RFC 1123 (label charset), RFC 6066 (SNI), IDNA via punycode (RFC 5890/5891). Options: `minLength`, `maxLength` (default 1–253). No leading/trailing dot.
+
+```typescript
+import { Hostname } from '@neabyte/auth-core'
+
+Hostname.isValid('api.example.com')
+// true
+
+Hostname.normalize('  API.Example.COM  ')
+// 'api.example.com'
+
+Hostname.validate('api.example.com')
+// { valid: true, errors: [] }
+```
+
+Invalid labels (e.g. leading/trailing dot or hyphen, label &gt; 63 chars), invalid IDNA, or length outside range yield `false` / `null` / `{ valid: false, errors: [...] }`.
+
+### Fullname
+
+Validate and normalize full names: conservative subset for formatted name (Unicode letters, space, hyphen, apostrophe; optional digits). Aligned with RFC 6350 (vCard FN) and Unicode per RFC 7700. Options: `minLength`, `maxLength` (default 2–128), `allowDigits`, `titleCase` (for normalize).
+
+```typescript
+import { Fullname } from '@neabyte/auth-core'
+
+Fullname.isValid('Jane Doe')
+// true
+
+Fullname.normalize('  jane   DOE  ')
+// 'Jane Doe'
+
+Fullname.validate("Jean-Pierre O'Brien")
+// { valid: true, errors: [] }
+```
+
+Invalid characters or length outside range yield `false` / `null` / `{ valid: false, errors: [...] }`. Normalize trims, collapses spaces, and applies title-case by default.
+
+### Utils
+
+Shared helpers for validation, string normalization, and crypto random. Static-only; do not instantiate.
+
+```typescript
+import { Utils } from '@neabyte/auth-core'
+
+Utils.collapseSpaces('  a   b  ')
+// 'a b'
+
+Utils.toTitleCase('jane doe')
+// 'Jane Doe'
+
+Utils.isString(value)
+// type guard: value is string
+
+Utils.lengthErrors(value, min, max, 'Label')
+// ['Label must be at least N characters', ...]
+
+Utils.resolveMinMax(options, { minLength: 2, maxLength: 128 })
+// { minLength, maxLength } or null
+
+Utils.randomInRange(1, 6)
+// crypto random integer in range
+
+Utils.toValidationResult(errors)
+// { valid: errors.length === 0, errors }
+```
+
 ## Modules Feature List
 
-| Method               | Category | Description                                                            |
-| :------------------- | :------- | :--------------------------------------------------------------------- |
-| `Email.isValid`      | Email    | Returns true when email format and length are valid.                   |
-| `Email.normalize`    | Email    | Trims and lowercases domain; optional local lowercasing.               |
-| `Email.getDomain`    | Email    | Extracts domain part (lowercased).                                     |
-| `Email.getLocalPart` | Email    | Extracts local part (before `@`).                                      |
-| `Password.isValid`   | Password | Returns true when password meets length and require\* rules.           |
-| `Password.validate`  | Password | Returns `{ valid, errors }` with detailed messages.                    |
-| `Password.strength`  | Password | Returns `{ category, score }` for strength (weak/medium/strong).       |
-| `Password.generate`  | Password | Generates random password satisfying options.                          |
-| `Username.isValid`   | Username | Returns true when length and pattern (letters, numbers, \_) are valid. |
-| `Username.normalize` | Username | Trims and lowercases; returns null if invalid.                         |
-| `Username.validate`  | Username | Returns `{ valid, errors }` with detailed messages.                    |
+| Method                       | Category | Description                                                             |
+| :--------------------------- | :------- | :---------------------------------------------------------------------- |
+| `Email.getDomain`            | Email    | Extracts domain part (lowercased).                                      |
+| `Email.getLocalPart`         | Email    | Extracts local part (before `@`). No `Email.validate()`; use `isValid`. |
+| `Email.isValid`              | Email    | Returns true when email format and length are valid.                    |
+| `Email.normalize`            | Email    | Trims and lowercases domain; optional local lowercasing.                |
+| `Fullname.isValid`           | Fullname | Returns true when fullname length and allowed characters are valid.     |
+| `Fullname.normalize`         | Fullname | Trims, collapses spaces, optional title-case; returns null if invalid.  |
+| `Fullname.validate`          | Fullname | Returns `{ valid, errors }` with detailed messages.                     |
+| `Hostname.isValid`           | Hostname | Returns true when hostname is valid DNS (e.g. for SNI).                 |
+| `Hostname.normalize`         | Hostname | Trims and lowercases; returns null if invalid.                          |
+| `Hostname.validate`          | Hostname | Returns `{ valid, errors }` with detailed messages.                     |
+| `Password.generate`          | Password | Generates random password satisfying options.                           |
+| `Password.isValid`           | Password | Returns true when password meets length and require\* rules.            |
+| `Password.strength`          | Password | Returns `{ category, score }` for strength (weak/medium/strong).        |
+| `Password.validate`          | Password | Returns `{ valid, errors }` with detailed messages.                     |
+| `Username.isValid`           | Username | Returns true when length and pattern (letters, numbers, \_) are valid.  |
+| `Username.normalize`         | Username | Trims and lowercases; returns null if invalid.                          |
+| `Username.validate`          | Username | Returns `{ valid, errors }` with detailed messages.                     |
+| `Utils.collapseSpaces`       | Utils    | Trims and collapses runs of spaces to one.                              |
+| `Utils.invalidOptionsResult` | Utils    | Returns { valid: false, errors: ['Invalid … length options'] }.         |
+| `Utils.isNonNegativeFinite`  | Utils    | Returns true when number is finite and non-negative.                    |
+| `Utils.isValidMinMax`        | Utils    | Returns true when min ≤ max and both finite and non-negative.           |
+| `Utils.isString`             | Utils    | Type guard: true if value is string.                                    |
+| `Utils.lengthErrors`         | Utils    | Builds length error messages for min/max and label.                     |
+| `Utils.notStringResult`      | Utils    | Returns { valid: false, errors: ['… must be a string'] }.               |
+| `Utils.randomInRange`        | Utils    | Crypto random integer in [min, max] inclusive.                          |
+| `Utils.randomUint32`         | Utils    | One random uint32 from crypto (0 to 2^32−1).                            |
+| `Utils.resolveMinMax`        | Utils    | Resolves min/max from options and defaults; null if invalid.            |
+| `Utils.toTitleCase`          | Utils    | Title-cases each word (first char upper, rest lower).                   |
+| `Utils.toValidationResult`   | Utils    | Builds `{ valid, errors }` from error array.                            |
 
 ## API Reference
-
-### Email.isValid
-
-```typescript
-Email.isValid(email, options?)
-```
-
-- `email` `<string>`: Email string to validate.
-- `options` `<EmailOptions>`: (Optional) Override default length limits and flags. Defaults to `{}`.
-- Returns: `boolean`
-- Description: Returns true when format and length are valid.
-
-### Email.normalize
-
-```typescript
-Email.normalize(email, options?)
-```
-
-- `email` `<string>`: Email string to normalize.
-- `options` `<NormalizeEmailOptions>`: (Optional) e.g. `{ lowercaseLocal: true }`. Defaults to `{}`.
-- Returns: `string | null`
-- Description: Trims and lowercases domain; optional local lowercasing. Returns null if invalid.
 
 ### Email.getDomain
 
@@ -160,6 +225,104 @@ Email.getLocalPart(email)
 - `email` `<string>`: Email string.
 - Returns: `string | null`
 - Description: Extracts local part (before `@`). Returns null if invalid.
+
+### Email.isValid
+
+```typescript
+Email.isValid(email, options?)
+```
+
+- `email` `<string>`: Email string to validate.
+- `options` `<EmailOptions>`: (Optional) Override default length limits and flags: `maxLength`, `localPartMaxLength`, `domainMaxLength`, `allowDisplayName`, `allowInternational`. Defaults to `{}`.
+- Returns: `boolean`
+- Description: Returns true when format and length are valid.
+
+### Email.normalize
+
+```typescript
+Email.normalize(email, options?)
+```
+
+- `email` `<string>`: Email string to normalize.
+- `options` `<NormalizeEmailOptions>`: (Optional) e.g. `{ lowercaseLocal: true }`. Defaults to `{}`.
+- Returns: `string | null`
+- Description: Trims and lowercases domain; optional local lowercasing. Returns null if invalid.
+
+### Fullname.isValid
+
+```typescript
+Fullname.isValid(fullname, options?)
+```
+
+- `fullname` `<string>`: Full name string to validate.
+- `options` `<FullnameOptions>`: (Optional) minLength, maxLength, allowDigits, titleCase (only affects normalize). Defaults to `{}`.
+- Returns: `boolean`
+- Description: Returns true when length and allowed characters (letters, spaces, hyphen, apostrophe; optionally digits) are valid and at least one letter is present.
+
+### Fullname.normalize
+
+```typescript
+Fullname.normalize(fullname, options?)
+```
+
+- `fullname` `<string>`: Full name string to normalize.
+- `options` `<FullnameOptions>`: (Optional) minLength, maxLength, allowDigits, titleCase. Defaults to `{}`.
+- Returns: `string | null`
+- Description: Trims, collapses multiple spaces to one, and applies title-case per word by default. Returns null if invalid.
+
+### Fullname.validate
+
+```typescript
+Fullname.validate(fullname, options?)
+```
+
+- `fullname` `<string>`: Full name string to validate.
+- `options` `<FullnameOptions>`: (Optional) minLength, maxLength, allowDigits, titleCase (only affects normalize). Defaults to `{}`.
+- Returns: `FullnameResult` (`{ valid: boolean, errors: string[] }`)
+- Description: Returns validation result with list of error messages.
+
+### Hostname.isValid
+
+```typescript
+Hostname.isValid(hostname, options?)
+```
+
+- `hostname` `<string>`: Hostname string to validate (e.g. for SNI).
+- `options` `<HostnameOptions>`: (Optional) minLength and maxLength. Defaults to `{}`. Effective length defaults are 1–253.
+- Returns: `boolean`
+- Description: Returns true when hostname is valid per RFC 1035/1123 (labels 1–63 chars, no leading/trailing dot; IDNA validated when present).
+
+### Hostname.normalize
+
+```typescript
+Hostname.normalize(hostname, options?)
+```
+
+- `hostname` `<string>`: Hostname string to normalize.
+- `options` `<HostnameOptions>`: (Optional) minLength and maxLength. Defaults to `{}`. Effective length defaults are 1–253.
+- Returns: `string | null`
+- Description: Trims and lowercases. Returns null if invalid.
+
+### Hostname.validate
+
+```typescript
+Hostname.validate(hostname, options?)
+```
+
+- `hostname` `<string>`: Hostname string to validate.
+- `options` `<HostnameOptions>`: (Optional) minLength and maxLength. Defaults to `{}`. Effective length defaults are 1–253.
+- Returns: `HostnameResult` (`{ valid: boolean, errors: string[] }`)
+- Description: Returns validation result with list of error messages.
+
+### Password.generate
+
+```typescript
+Password.generate(options?)
+```
+
+- `options` `<PasswordOptions>`: (Optional) Length and require\* rules. Defaults to `{}`.
+- Returns: `string`
+- Description: Generates random password satisfying the given options. Generated length is capped at 1024.
 
 ### Password.isValid
 
@@ -191,17 +354,7 @@ Password.strength(password)
 
 - `password` `<string>`: Password string to score.
 - Returns: `PasswordStrengthResult` (`{ category: 'weak' | 'medium' | 'strong', score: number }`)
-- Description: Returns strength category and numeric score (0–100).
-
-### Password.generate
-
-```typescript
-Password.generate(options?)
-```
-
-- `options` `<PasswordOptions>`: (Optional) Length and require\* rules. Defaults to `{}`.
-- Returns: `string`
-- Description: Generates random password satisfying the given options.
+- Description: Returns strength category and numeric score (0–100). Empty or non-string input returns `{ category: 'weak', score: 0 }`.
 
 ### Username.isValid
 
@@ -236,15 +389,146 @@ Username.validate(username, options?)
 - Returns: `UsernameResult` (`{ valid: boolean, errors: string[] }`)
 - Description: Returns validation result with list of error messages.
 
-## Option Types
+### Utils.collapseSpaces
 
-**EmailOptions** (optional): `maxLength` (default 254), `localPartMaxLength` (64), `domainMaxLength` (253), `allowDisplayName` (false), `allowInternational` (false).
+```typescript
+Utils.collapseSpaces(value)
+```
 
-**NormalizeEmailOptions** (optional): `lowercaseLocal` (false).
+- `value` `<string>`: String to normalize.
+- Returns: `string`
+- Description: Trims and collapses runs of spaces to one.
 
-**PasswordOptions** (optional): `minLength` (8), `maxLength` (128), `requireUppercase`, `requireLowercase`, `requireDigit`, `requireSpecial` (all default false).
+### Utils.invalidOptionsResult
 
-**UsernameOptions** (optional): `minLength` (3), `maxLength` (32).
+```typescript
+Utils.invalidOptionsResult(label)
+```
+
+- `label` `<string>`: Field name (e.g. fullname, hostname).
+- Returns: `ValidationResult`
+- Description: Returns { valid: false, errors: ['Invalid … length options'] }.
+
+### Utils.isNonNegativeFinite
+
+```typescript
+Utils.isNonNegativeFinite(n)
+```
+
+- `n` `<number>`: Value to check.
+- Returns: `boolean`
+- Description: Returns true when finite and non-negative.
+
+### Utils.isValidMinMax
+
+```typescript
+Utils.isValidMinMax(min, max)
+```
+
+- `min` `<number>`: Minimum value.
+- `max` `<number>`: Maximum value.
+- Returns: `boolean`
+- Description: Returns true when min ≤ max and both are finite and non-negative.
+
+### Utils.isString
+
+```typescript
+Utils.isString(value)
+```
+
+- `value` `<unknown>`: Value to check.
+- Returns: `value is string`
+- Description: Type guard; returns true when value is a string.
+
+### Utils.lengthErrors
+
+```typescript
+Utils.lengthErrors(value, min, max, label)
+```
+
+- `value` `<string>`: String to check.
+- `min` `<number>`: Minimum length.
+- `max` `<number>`: Maximum length.
+- `label` `<string>`: Label for error messages.
+- Returns: `string[]`
+- Description: Builds error messages for too short or too long.
+
+### Utils.notStringResult
+
+```typescript
+Utils.notStringResult(label)
+```
+
+- `label` `<string>`: Field name (e.g. Fullname, Hostname).
+- Returns: `ValidationResult`
+- Description: Returns { valid: false, errors: ['… must be a string'] }.
+
+### Utils.randomInRange
+
+```typescript
+Utils.randomInRange(min, max)
+```
+
+- `min` `<number>`: Minimum value (inclusive).
+- `max` `<number>`: Maximum value (inclusive).
+- Returns: `number`
+- Description: Crypto random integer in [min, max].
+
+### Utils.randomUint32
+
+```typescript
+Utils.randomUint32()
+```
+
+- Returns: `number`
+- Description: One random uint32 from crypto (0 to 2^32−1).
+
+### Utils.resolveMinMax
+
+```typescript
+Utils.resolveMinMax(options, defaults)
+```
+
+- `options` `<MinMaxOptions>`: Optional minLength and maxLength.
+- `defaults` `<ResolvedMinMax>`: Default min and max length.
+- Returns: `ResolvedMinMax | null`
+- Description: Resolves min/max from options and defaults. Returns null if invalid range.
+
+### Utils.toTitleCase
+
+```typescript
+Utils.toTitleCase(value)
+```
+
+- `value` `<string>`: String to transform.
+- Returns: `string`
+- Description: Title-cases each word (first char upper, rest lower).
+
+### Utils.toValidationResult
+
+```typescript
+Utils.toValidationResult(errors)
+```
+
+- `errors` `<string[]>`: Error messages.
+- Returns: `ValidationResult` (`{ valid: boolean, errors: string[] }`)
+- Description: Builds result with valid = (errors.length === 0).
+
+## Build & Test
+
+From the repo root (requires [Deno](https://deno.com/)).
+
+**Check** — format, lint, and typecheck source:
+
+```bash
+deno task check
+```
+
+**Unit tests** — format/lint tests and run all tests:
+
+```bash
+deno task test
+```
 
 ## License
 

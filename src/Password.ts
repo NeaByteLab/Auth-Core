@@ -1,143 +1,95 @@
 import type * as Types from '@app/Types.ts'
-import * as Utils from '@app/Utils.ts'
-
-/** Default min and max password length. */
-const defaultLengths = { minLength: 8, maxLength: 128 } as const
-/** Default resolved options when user options are invalid */
-const defaultResolvedOptions: Types.ResolvedPasswordOptions = {
-  maxLength: defaultLengths.maxLength,
-  minLength: defaultLengths.minLength,
-  requireDigit: false,
-  requireLowercase: false,
-  requireSpecial: false,
-  requireUppercase: false
-}
-/** Lowercase letters for generation */
-const lowercaseLetters = 'abcdefghijklmnopqrstuvwxyz'
-/** Uppercase letters for generation */
-const uppercaseLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-/** Digit characters for generation */
-const digits = '0123456789'
-/** Special characters for generation */
-const specialChars = '!@#$%^&*()_+-=[]{};\':"|,.<>/?'
-/** Regex matching one special character */
-const specialRegex = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/
-/** Requirement key to user-facing error message. */
-const requirementMessages: Record<
-  keyof Pick<
-    Types.ResolvedPasswordOptions,
-    'requireDigit' | 'requireLowercase' | 'requireSpecial' | 'requireUppercase'
-  >,
-  string
-> = {
-  requireDigit: 'Password must contain at least one digit',
-  requireLowercase: 'Password must contain at least one lowercase letter',
-  requireSpecial: 'Password must contain at least one special character',
-  requireUppercase: 'Password must contain at least one uppercase letter'
-}
-/** Char requirement and strength rules. */
-const charRules = [
-  { regex: /\d/, charSet: digits, key: 'requireDigit' as const, strengthScore: 15 },
-  {
-    regex: /[a-z]/,
-    charSet: lowercaseLetters,
-    key: 'requireLowercase' as const,
-    strengthScore: 15
-  },
-  { regex: specialRegex, charSet: specialChars, key: 'requireSpecial' as const, strengthScore: 20 },
-  { regex: /[A-Z]/, charSet: uppercaseLetters, key: 'requireUppercase' as const, strengthScore: 15 }
-] as const
-
-/**
- * Ensures one char matches regex.
- * @description Inserts matching char if missing.
- * @param result - Current password string
- * @param length - Length of result
- * @param regex - Pattern to require
- * @param charSet - Chars to pick from
- * @returns String with one match
- */
-function ensureOneChar(result: string, length: number, regex: RegExp, charSet: string): string {
-  if (regex.test(result)) {
-    return result
-  }
-  const randomForIndex = Utils.randomUint32()
-  const randomForPick = Utils.randomUint32()
-  const insertIndex = Math.min(length - 1, Math.floor((length * randomForIndex) / 2 ** 32))
-  const pick = charSet[Math.floor((charSet.length * randomForPick) / 2 ** 32)] ?? charSet[0]
-  return `${result.slice(0, insertIndex)}${pick}${result.slice(insertIndex + 1)}`
-}
-
-/**
- * Resolves password options.
- * @description Merges length and requirement flags.
- * @param options - User options
- * @returns Resolved options or null
- */
-function resolveOptions(options: Types.PasswordOptions): Types.ResolvedPasswordOptions | null {
-  const range = Utils.resolveMinMax(options, defaultLengths)
-  if (range === null) {
-    return null
-  }
-  return {
-    ...range,
-    requireDigit: options.requireDigit === true,
-    requireLowercase: options.requireLowercase === true,
-    requireSpecial: options.requireSpecial === true,
-    requireUppercase: options.requireUppercase === true
-  }
-}
-
-/**
- * Runs checks and returns errors.
- * @description Length and requirement error messages.
- * @param password - Password to check
- * @param resolvedOptions - Resolved options
- * @returns Error messages
- */
-function runChecks(password: string, resolvedOptions: Types.ResolvedPasswordOptions): string[] {
-  const errors = Utils.lengthErrors(
-    password,
-    resolvedOptions.minLength,
-    resolvedOptions.maxLength,
-    'Password'
-  )
-  for (const { regex, key } of charRules) {
-    if (resolvedOptions[key] && !regex.test(password)) {
-      errors.push(requirementMessages[key])
-    }
-  }
-  return errors
-}
+import { Utils } from '@app/index.ts'
 
 /**
  * Password validation and generation.
- * @description Validates rules scores strength generates.
+ * @description Validates rules, scores strength, generates password.
  */
-export default class Password {
+export class Password {
+  /** Private constructor to prevent instantiation */
+  private constructor() {}
+  /** Default min and max password length. */
+  static readonly defaultLengths = { minLength: 8, maxLength: 128 } as const
+  /** Default resolved options for invalid input */
+  static readonly defaultResolvedOptions: Types.ResolvedPasswordOptions = {
+    maxLength: 128,
+    minLength: 8,
+    requireDigit: false,
+    requireLowercase: false,
+    requireSpecial: false,
+    requireUppercase: false
+  }
+  /** Lowercase letters for generation */
+  static readonly lowercaseLetters = 'abcdefghijklmnopqrstuvwxyz'
+  /** Uppercase letters for generation */
+  static readonly uppercaseLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  /** Digit characters for generation */
+  static readonly digits = '0123456789'
+  /** Special characters for generation */
+  static readonly specialChars = '!@#$%^&*()_+-=[]{};\':"|,.<>/?'
+  /** Regex matching one special character */
+  static readonly specialRegex = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/
+  /** Requirement key to user-facing error message. */
+  static readonly requirementMessages: Record<
+    keyof Pick<
+      Types.ResolvedPasswordOptions,
+      'requireDigit' | 'requireLowercase' | 'requireSpecial' | 'requireUppercase'
+    >,
+    string
+  > = {
+    requireDigit: 'Password must contain at least one digit',
+    requireLowercase: 'Password must contain at least one lowercase letter',
+    requireSpecial: 'Password must contain at least one special character',
+    requireUppercase: 'Password must contain at least one uppercase letter'
+  }
+  /** Char requirement and strength rules. */
+  static readonly charRules = [
+    {
+      regex: /\d/,
+      charSet: Password.digits,
+      key: 'requireDigit' as const,
+      strengthScore: 15
+    },
+    {
+      regex: /[a-z]/,
+      charSet: Password.lowercaseLetters,
+      key: 'requireLowercase' as const,
+      strengthScore: 15
+    },
+    {
+      regex: Password.specialRegex,
+      charSet: Password.specialChars,
+      key: 'requireSpecial' as const,
+      strengthScore: 20
+    },
+    {
+      regex: /[A-Z]/,
+      charSet: Password.uppercaseLetters,
+      key: 'requireUppercase' as const,
+      strengthScore: 15
+    }
+  ] as const
+
   /**
-   * Generates random password.
-   * @description Meets length and requirement options.
-   * @param options - Length and require rules
+   * Generate random password per options.
+   * @description Ensures required char sets; crypto random.
+   * @param options - Optional length and requirements
    * @returns Generated password string
    */
   static generate(options: Types.PasswordOptions = {}): string {
-    const resolvedOptions = resolveOptions(options) ?? defaultResolvedOptions
-    const requiredCount = charRules.filter((rule) => resolvedOptions[rule.key]).length
+    const resolvedOptions = Password.resolveOptions(options) ?? Password.defaultResolvedOptions
+    const requiredCount = Password.charRules.filter((rule) => resolvedOptions[rule.key]).length
     const minLength = Math.max(requiredCount, resolvedOptions.minLength)
     const maxLength = Math.min(1024, resolvedOptions.maxLength)
-    const rand = Utils.randomUint32()
-    const length = maxLength >= minLength
-      ? minLength + Math.floor(((maxLength - minLength + 1) * rand) / 2 ** 32)
-      : minLength
+    const length = Utils.randomInRange(minLength, maxLength)
     let charset = ''
-    for (const { charSet, key } of charRules) {
+    for (const { charSet, key } of Password.charRules) {
       if (resolvedOptions[key]) {
         charset += charSet
       }
     }
     if (charset.length === 0) {
-      charset = `${lowercaseLetters}${uppercaseLetters}${digits}`
+      charset = `${Password.lowercaseLetters}${Password.uppercaseLetters}${Password.digits}`
     }
     const randomBytes = new Uint8Array(length)
     crypto.getRandomValues(randomBytes)
@@ -145,19 +97,19 @@ export default class Password {
     for (let index = 0; index < length; index++) {
       result += charset[(randomBytes[index] ?? 0) % charset.length]
     }
-    for (const { regex, charSet, key } of charRules) {
+    for (const { regex, charSet, key } of Password.charRules) {
       if (resolvedOptions[key]) {
-        result = ensureOneChar(result, length, regex, charSet)
+        result = Password.ensureOneChar(result, length, regex, charSet)
       }
     }
     return result
   }
 
   /**
-   * Checks password valid.
-   * @description True when validate returns valid.
-   * @param password - String to validate
-   * @param options - Optional rules
+   * Check password valid per options.
+   * @description Delegates to validate and returns valid flag.
+   * @param password - Password string
+   * @param options - Optional length and requirements
    * @returns True if valid
    */
   static isValid(password: string, options: Types.PasswordOptions = {}): boolean {
@@ -165,10 +117,10 @@ export default class Password {
   }
 
   /**
-   * Computes password strength score.
-   * @description Category and numeric score.
-   * @param password - String to score
-   * @returns Category and score
+   * Score password strength category and score.
+   * @description Length and char-set contribution to score.
+   * @param password - Password string
+   * @returns PasswordStrengthResult with category and score
    */
   static strength(password: string): Types.PasswordStrengthResult {
     if (!Utils.isString(password) || password.length === 0) {
@@ -184,7 +136,7 @@ export default class Password {
     if (password.length >= 16) {
       score += 10
     }
-    for (const { regex, strengthScore } of charRules) {
+    for (const { regex, strengthScore } of Password.charRules) {
       if (regex.test(password)) {
         score += strengthScore
       }
@@ -195,21 +147,97 @@ export default class Password {
   }
 
   /**
-   * Validates password against rules.
-   * @description Valid flag and errors array.
-   * @param password - String to validate
-   * @param options - Optional rules
-   * @returns Valid flag and errors
+   * Validate password and return result.
+   * @description Runs length and requirement checks.
+   * @param password - Password string
+   * @param options - Optional length and requirements
+   * @returns PasswordResult with valid and errors
    */
   static validate(password: string, options: Types.PasswordOptions = {}): Types.PasswordResult {
     if (!Utils.isString(password)) {
-      return { valid: false, errors: ['Password must be a string'] }
+      return Utils.notStringResult('Password')
     }
-    const resolvedOptions = resolveOptions(options)
+    const resolvedOptions = Password.resolveOptions(options)
     if (resolvedOptions === null) {
-      return { valid: false, errors: ['Invalid password length options'] }
+      return Utils.invalidOptionsResult('password')
     }
-    const errors = runChecks(password, resolvedOptions)
+    const errors = Password.runChecks(password, resolvedOptions)
     return Utils.toValidationResult(errors)
+  }
+
+  /**
+   * Ensure at least one char matching regex.
+   * @description Inserts from charSet if none present.
+   * @param result - Current password string
+   * @param length - Length of result
+   * @param regex - Pattern to require
+   * @param charSet - Chars to pick from
+   * @returns Modified result with one match
+   */
+  private static ensureOneChar(
+    result: string,
+    length: number,
+    regex: RegExp,
+    charSet: string
+  ): string {
+    if (regex.test(result)) {
+      return result
+    }
+    const insertIndex = Utils.randomInRange(0, length - 1)
+    const pickIndex = Utils.randomInRange(0, charSet.length - 1)
+    const pick = charSet[pickIndex] ?? charSet[0]
+    return `${result.slice(0, insertIndex)}${pick}${result.slice(insertIndex + 1)}`
+  }
+
+  /**
+   * Resolve password options with defaults.
+   * @description Validates range and requirement flags.
+   * @param options - User password options
+   * @returns Resolved options or null if invalid
+   */
+  private static resolveOptions(
+    options: Types.PasswordOptions
+  ): Types.ResolvedPasswordOptions | null {
+    const range = Utils.resolveMinMax(options, Password.defaultLengths)
+    if (range === null) {
+      return null
+    }
+    const minLength = Math.max(1, range.minLength)
+    if (minLength > range.maxLength) {
+      return null
+    }
+    return {
+      ...range,
+      minLength,
+      requireDigit: options.requireDigit === true,
+      requireLowercase: options.requireLowercase === true,
+      requireSpecial: options.requireSpecial === true,
+      requireUppercase: options.requireUppercase === true
+    }
+  }
+
+  /**
+   * Run length and requirement checks.
+   * @description Pushes length and char-rule errors.
+   * @param password - Password string
+   * @param resolvedOptions - Resolved options
+   * @returns Array of error messages
+   */
+  private static runChecks(
+    password: string,
+    resolvedOptions: Types.ResolvedPasswordOptions
+  ): string[] {
+    const errors = Utils.lengthErrors(
+      password,
+      resolvedOptions.minLength,
+      resolvedOptions.maxLength,
+      'Password'
+    )
+    for (const { regex, key } of Password.charRules) {
+      if (resolvedOptions[key] && !regex.test(password)) {
+        errors.push(Password.requirementMessages[key])
+      }
+    }
+    return errors
   }
 }

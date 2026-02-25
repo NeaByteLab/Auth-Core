@@ -1,65 +1,30 @@
 import type * as Types from '@app/Types.ts'
-import * as Utils from '@app/Utils.ts'
-
-/** Default maximum username length */
-const defaultMaxLength = 32
-/** Default minimum username length */
-const defaultMinLength = 3
-/** Default resolved options when user options are invalid */
-const defaultResolvedOptions: Types.ResolvedUsernameOptions = {
-  maxLength: defaultMaxLength,
-  minLength: defaultMinLength
-}
-/** Pattern: letters, digits, underscore only */
-const usernameRegex = /^[a-zA-Z0-9_]+$/
-
-/**
- * Resolves username options.
- * @description Merges with defaults or null.
- * @param options - User options
- * @returns Resolved options or null
- */
-function resolveOptions(options: Types.UsernameOptions): Types.ResolvedUsernameOptions | null {
-  const range = Utils.resolveMinMax(options, {
-    minLength: defaultMinLength,
-    maxLength: defaultMaxLength
-  })
-  if (range === null) {
-    return null
-  }
-  return { ...range }
-}
-
-/**
- * Runs checks and returns errors.
- * @description Length and pattern error messages.
- * @param username - Trimmed username to check
- * @param resolvedOptions - Resolved options
- * @returns Error messages
- */
-function runChecks(username: string, resolvedOptions: Types.ResolvedUsernameOptions): string[] {
-  const errors = Utils.lengthErrors(
-    username,
-    resolvedOptions.minLength,
-    resolvedOptions.maxLength,
-    'Username'
-  )
-  if (!usernameRegex.test(username)) {
-    errors.push('Username must contain only letters, numbers, and underscore')
-  }
-  return errors
-}
+import { Utils } from '@app/index.ts'
 
 /**
  * Username validation and normalization.
- * @description Validates length pattern normalizes trim case.
+ * @description Validates length and pattern, normalizes trim and case.
  */
-export default class Username {
+export class Username {
+  /** Private constructor to prevent instantiation */
+  private constructor() {}
+  /** Default maximum username length */
+  static readonly defaultMaxLength = 32
+  /** Default minimum username length */
+  static readonly defaultMinLength = 3
+  /** Default resolved options for invalid input */
+  static readonly defaultResolvedOptions: Types.ResolvedUsernameOptions = {
+    maxLength: 32,
+    minLength: 3
+  }
+  /** Pattern: letters, digits, underscore only */
+  static readonly usernameRegex = /^[a-zA-Z0-9_]+$/
+
   /**
-   * Checks username valid.
-   * @description True when validate returns valid.
-   * @param username - String to validate
-   * @param options - Optional length rules
+   * Check username valid per options.
+   * @description Delegates to validate and returns valid flag.
+   * @param username - Username string
+   * @param options - Optional min/max length
    * @returns True if valid
    */
   static isValid(username: string, options: Types.UsernameOptions = {}): boolean {
@@ -67,19 +32,19 @@ export default class Username {
   }
 
   /**
-   * Normalizes username string.
-   * @description Trimmed lowercased or null if invalid.
+   * Normalize username trim and lowercase.
+   * @description Returns null if validation fails.
    * @param username - Username string
-   * @param options - Optional length rules
-   * @returns Trimmed lowercased or null
+   * @param options - Optional min/max length
+   * @returns Normalized string or null
    */
   static normalize(username: string, options: Types.UsernameOptions = {}): string | null {
     if (!Utils.isString(username)) {
       return null
     }
     const trimmed = username.trim()
-    const resolvedOptions = resolveOptions(options) ?? defaultResolvedOptions
-    const errors = runChecks(trimmed, resolvedOptions)
+    const resolvedOptions = Username.resolveOptions(options) ?? Username.defaultResolvedOptions
+    const errors = Username.runChecks(trimmed, resolvedOptions)
     if (errors.length > 0) {
       return null
     }
@@ -87,22 +52,64 @@ export default class Username {
   }
 
   /**
-   * Validates username against rules.
-   * @description Valid flag and errors array.
-   * @param username - String to validate
-   * @param options - Optional length rules
-   * @returns Valid flag and errors
+   * Validate username and return result.
+   * @description Runs length and pattern checks.
+   * @param username - Username string
+   * @param options - Optional min/max length
+   * @returns UsernameResult with valid and errors
    */
   static validate(username: string, options: Types.UsernameOptions = {}): Types.UsernameResult {
     if (!Utils.isString(username)) {
-      return { errors: ['Username must be a string'], valid: false }
+      return Utils.notStringResult('Username')
     }
     const trimmed = username.trim()
-    const resolvedOptions = resolveOptions(options)
+    const resolvedOptions = Username.resolveOptions(options)
     if (resolvedOptions === null) {
-      return { errors: ['Invalid username length options'], valid: false }
+      return Utils.invalidOptionsResult('username')
     }
-    const errors = runChecks(trimmed, resolvedOptions)
+    const errors = Username.runChecks(trimmed, resolvedOptions)
     return Utils.toValidationResult(errors)
+  }
+
+  /**
+   * Resolve username options with defaults.
+   * @description Validates min/max range.
+   * @param options - User username options
+   * @returns Resolved options or null if invalid
+   */
+  private static resolveOptions(
+    options: Types.UsernameOptions
+  ): Types.ResolvedUsernameOptions | null {
+    const range = Utils.resolveMinMax(options, {
+      minLength: Username.defaultMinLength,
+      maxLength: Username.defaultMaxLength
+    })
+    if (range === null) {
+      return null
+    }
+    return { ...range }
+  }
+
+  /**
+   * Run length and pattern checks.
+   * @description Pushes length and regex errors to array.
+   * @param username - Trimmed username string
+   * @param resolvedOptions - Resolved min/max
+   * @returns Array of error messages
+   */
+  private static runChecks(
+    username: string,
+    resolvedOptions: Types.ResolvedUsernameOptions
+  ): string[] {
+    const errors = Utils.lengthErrors(
+      username,
+      resolvedOptions.minLength,
+      resolvedOptions.maxLength,
+      'Username'
+    )
+    if (!Username.usernameRegex.test(username)) {
+      errors.push('Username must contain only letters, numbers, and underscore')
+    }
+    return errors
   }
 }

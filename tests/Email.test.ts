@@ -1,6 +1,62 @@
 import { assert, assertFalse } from '@std/assert'
-import { Email } from '@app/index.ts'
-import type { EmailOptions } from '@app/index.ts'
+import { Email, type EmailOptions } from '@app/index.ts'
+
+Deno.test('Email - allowDisplayName and allowInternational combined', () => {
+  assert(
+    Email.isValid('Name <用户@domain.com>', {
+      allowDisplayName: true,
+      allowInternational: true
+    })
+  )
+})
+
+Deno.test('Email - allowDisplayName false rejects angle-addr as invalid', () => {
+  assertFalse(Email.isValid('Name <a@b.com>', { allowDisplayName: false }))
+  assertFalse(Email.isValid('"Name" <a@b.com>', { allowDisplayName: false }))
+})
+
+Deno.test('Email - allowDisplayName true accepts angle-addr', () => {
+  assert(Email.isValid('Name <a@b.com>', { allowDisplayName: true }))
+  assert(Email.isValid('"Name" <user@domain.com>', { allowDisplayName: true }))
+})
+
+Deno.test('Email - allowDisplayName true extracts addr-spec only', () => {
+  assert(Email.isValid('John Doe <john.doe@example.com>', { allowDisplayName: true }))
+})
+
+Deno.test('Email - allowDisplayName true rejects angle-addr with trailing text', () => {
+  assertFalse(Email.isValid('Name <a@b.com> extra', { allowDisplayName: true }))
+  assertFalse(Email.isValid('  A <user@example.com> @other  ', { allowDisplayName: true }))
+})
+
+Deno.test('Email - allowInternational false rejects non-ASCII local-part', () => {
+  assertFalse(Email.isValid('用户@domain.com', { allowInternational: false }))
+  assertFalse(Email.isValid('用户@domain.com'))
+})
+
+Deno.test('Email - allowInternational true allows UTF-8 in local-part', () => {
+  assert(Email.isValid('用户@domain.com', { allowInternational: true }))
+  assert(Email.isValid('tëst@domain.com', { allowInternational: true }))
+})
+
+Deno.test('Email - domain label cannot start or end with hyphen', () => {
+  assertFalse(Email.isValid('a@-domain.com'))
+  assertFalse(Email.isValid('a@domain-.com'))
+  assert(Email.isValid('a@mid-domain.com'))
+})
+
+Deno.test('Email - domain must have valid label structure', () => {
+  assert(Email.isValid('a@b.co'))
+  assertFalse(Email.isValid('a@.domain.com'))
+  assertFalse(Email.isValid('a@domain..com'))
+})
+
+Deno.test('Email - Email.getDomain and getLocalPart extract from angle-addr', () => {
+  assert(Email.getDomain('Display Name <user@example.com>') === 'example.com')
+  assert(Email.getLocalPart('Display Name <user@example.com>') === 'user')
+  assert(Email.getDomain('  A <a@b.co>  ') === 'b.co')
+  assert(Email.getLocalPart('  A <a@b.co>  ') === 'a')
+})
 
 Deno.test('Email - Email.getDomain invalid returns null', () => {
   assert(Email.getDomain('') === null)
@@ -47,51 +103,6 @@ Deno.test('Email - Email.normalize trims and lowercases domain', () => {
   assert(Email.normalize('  User@EXAMPLE.COM  ') === 'User@example.com')
   assert(Email.normalize('a@B.Co') === 'a@b.co')
   assert(Email.normalize('x@Y.Z.ORG') === 'x@y.z.org')
-})
-
-Deno.test('Email - allowDisplayName and allowInternational combined', () => {
-  assert(
-    Email.isValid('Name <用户@domain.com>', {
-      allowDisplayName: true,
-      allowInternational: true
-    })
-  )
-})
-
-Deno.test('Email - allowDisplayName false rejects angle-addr as invalid', () => {
-  assertFalse(Email.isValid('Name <a@b.com>', { allowDisplayName: false }))
-  assertFalse(Email.isValid('"Name" <a@b.com>', { allowDisplayName: false }))
-})
-
-Deno.test('Email - allowDisplayName true accepts angle-addr', () => {
-  assert(Email.isValid('Name <a@b.com>', { allowDisplayName: true }))
-  assert(Email.isValid('"Name" <user@domain.com>', { allowDisplayName: true }))
-})
-
-Deno.test('Email - allowDisplayName true extracts addr-spec only', () => {
-  assert(Email.isValid('John Doe <john.doe@example.com>', { allowDisplayName: true }))
-})
-
-Deno.test('Email - allowInternational false rejects non-ASCII local-part', () => {
-  assertFalse(Email.isValid('用户@domain.com', { allowInternational: false }))
-  assertFalse(Email.isValid('用户@domain.com'))
-})
-
-Deno.test('Email - allowInternational true allows UTF-8 in local-part', () => {
-  assert(Email.isValid('用户@domain.com', { allowInternational: true }))
-  assert(Email.isValid('tëst@domain.com', { allowInternational: true }))
-})
-
-Deno.test('Email - domain label cannot start or end with hyphen', () => {
-  assertFalse(Email.isValid('a@-domain.com'))
-  assertFalse(Email.isValid('a@domain-.com'))
-  assert(Email.isValid('a@mid-domain.com'))
-})
-
-Deno.test('Email - domain must have valid label structure', () => {
-  assert(Email.isValid('a@b.co'))
-  assertFalse(Email.isValid('a@.domain.com'))
-  assertFalse(Email.isValid('a@domain..com'))
 })
 
 Deno.test('Email - invalid at-sign position', () => {
@@ -180,20 +191,33 @@ Deno.test('Email - options boundary maxLength exact', () => {
   assertFalse(Email.isValid(address, { maxLength: address.length - 1 }))
 })
 
-Deno.test('Email - options override domainMaxLength', () => {
-  assert(Email.isValid('a@b.co', { domainMaxLength: 5 }))
-  assertFalse(Email.isValid('a@longdomain.com', { domainMaxLength: 5 }))
-})
-
 Deno.test('Email - options override defaults maxLength', () => {
   const opts: EmailOptions = { maxLength: 10 }
   assert(Email.isValid('a@b.co', opts))
   assertFalse(Email.isValid('long@domain.com', opts))
 })
 
+Deno.test('Email - options override domainMaxLength', () => {
+  assert(Email.isValid('a@b.co', { domainMaxLength: 5 }))
+  assertFalse(Email.isValid('a@longdomain.com', { domainMaxLength: 5 }))
+})
+
 Deno.test('Email - options override localPartMaxLength', () => {
   assert(Email.isValid('ab@domain.com', { localPartMaxLength: 2 }))
   assertFalse(Email.isValid('abc@domain.com', { localPartMaxLength: 2 }))
+})
+
+Deno.test('Email - RFC 5321/5322 default limits local 64 domain 253 total 254', () => {
+  assert(Email.defaultOptions.localPartMaxLength === 64)
+  assert(Email.defaultOptions.domainMaxLength === 253)
+  assert(Email.defaultOptions.maxLength === 254)
+  assert(Email.isValid('a'.repeat(64) + '@b.co'))
+  assertFalse(Email.isValid('a'.repeat(65) + '@b.co'))
+  const l63 = 'a'.repeat(63)
+  const domain252 = `${l63}.${l63}.${l63}.${'b'.repeat(57)}.co`
+  assert(domain252.length === 252)
+  assert(('u@' + domain252).length === 254)
+  assert(Email.isValid('u@' + domain252))
 })
 
 Deno.test('Email - security control chars and null byte rejected', () => {

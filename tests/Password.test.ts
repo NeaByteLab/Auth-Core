@@ -1,6 +1,5 @@
 import { assert, assertFalse } from '@std/assert'
-import { Password } from '@app/index.ts'
-import type { PasswordOptions } from '@app/index.ts'
+import { Password, type PasswordOptions } from '@app/index.ts'
 
 Deno.test('Password - all options explicitly set', () => {
   const opts: PasswordOptions = {
@@ -63,6 +62,14 @@ Deno.test('Password - custom minLength and maxLength', () => {
   assertFalse(Password.isValid('abcdefg', opts))
 })
 
+Deno.test('Password - empty string never valid minLength clamped to 1', () => {
+  assertFalse(Password.isValid(''))
+  assertFalse(Password.isValid('', { minLength: 0, maxLength: 128 }))
+  const result = Password.validate('', { minLength: 0, maxLength: 128 })
+  assertFalse(result.valid)
+  assert(result.errors.some((e) => e.includes('at least 1')))
+})
+
 Deno.test('Password - invalid above max length', () => {
   assertFalse(Password.isValid('a'.repeat(129)))
   assertFalse(Password.isValid('a'.repeat(200)))
@@ -101,6 +108,12 @@ Deno.test('Password - non-string returns false', () => {
   assertFalse(Password.isValid(12345 as unknown as string))
 })
 
+Deno.test('Password - options minLength 0 maxLength 0 resolve to invalid after clamp', () => {
+  const result = Password.validate('a', { minLength: 0, maxLength: 0 })
+  assertFalse(result.valid)
+  assert(result.errors[0] === 'Invalid password length options')
+})
+
 Deno.test('Password - Password.generate default length in range', () => {
   for (let i = 0; i < 10; i++) {
     const generated = Password.generate()
@@ -122,6 +135,15 @@ Deno.test('Password - Password.generate satisfies options and Password.isValid',
     const generated = Password.generate(opts)
     assert(generated.length >= 12 && generated.length <= 20)
     assert(Password.isValid(generated, opts))
+  }
+})
+
+Deno.test('Password - Password.generate with invalid options uses defaults', () => {
+  const badOpts = { minLength: 20, maxLength: 10 }
+  for (let i = 0; i < 5; i++) {
+    const generated = Password.generate(badOpts)
+    assert(generated.length >= 8 && generated.length <= 128)
+    assert(Password.isValid(generated))
   }
 })
 
@@ -187,6 +209,13 @@ Deno.test('Password - Password.validate returns valid and empty errors when ok',
   assert(result.errors.length === 0)
 })
 
+Deno.test('Password - require* false or omitted does not enforce', () => {
+  assert(Password.isValid('password', { requireUppercase: false }))
+  assert(Password.isValid('PASSWORD', { requireLowercase: false }))
+  assert(Password.isValid('abcdefgh', { requireDigit: false }))
+  assert(Password.isValid('abcdefgh', { requireSpecial: false }))
+})
+
 Deno.test('Password - requireDigit when true', () => {
   assertFalse(Password.isValid('password', { requireDigit: true }))
   assert(Password.isValid('password1', { requireDigit: true }))
@@ -211,13 +240,6 @@ Deno.test('Password - requireUppercase when true', () => {
   assert(Password.isValid('PASSWORD', { requireUppercase: true }))
 })
 
-Deno.test('Password - require* false or omitted does not enforce', () => {
-  assert(Password.isValid('password', { requireUppercase: false }))
-  assert(Password.isValid('PASSWORD', { requireLowercase: false }))
-  assert(Password.isValid('abcdefgh', { requireDigit: false }))
-  assert(Password.isValid('abcdefgh', { requireSpecial: false }))
-})
-
 Deno.test('Password - security control char in password', () => {
   assert(Password.isValid('pass\x00word'))
   assert(Password.isValid('password\n'))
@@ -229,6 +251,10 @@ Deno.test('Password - security non-string input rejected', () => {
   assertFalse(Password.isValid(true as unknown as string))
 })
 
+Deno.test('Password - security options maxLength negative rejected', () => {
+  assertFalse(Password.isValid('password', { maxLength: -1 }))
+})
+
 Deno.test('Password - security options minLength greater than maxLength rejects all', () => {
   const opts: PasswordOptions = { minLength: 10, maxLength: 5 }
   assertFalse(Password.isValid('1234567890', opts))
@@ -237,10 +263,6 @@ Deno.test('Password - security options minLength greater than maxLength rejects 
 
 Deno.test('Password - security options minLength negative or zero', () => {
   assertFalse(Password.isValid('abc', { minLength: -1 }))
-})
-
-Deno.test('Password - security options maxLength negative rejected', () => {
-  assertFalse(Password.isValid('password', { maxLength: -1 }))
 })
 
 Deno.test('Password - security options NaN or Infinity rejected', () => {

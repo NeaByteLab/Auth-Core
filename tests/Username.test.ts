@@ -1,6 +1,5 @@
 import { assert, assertFalse } from '@std/assert'
-import { Username } from '@app/index.ts'
-import type { UsernameOptions } from '@app/index.ts'
+import { Username, type UsernameOptions } from '@app/index.ts'
 
 Deno.test('Username - boundary exactly max length 32', () => {
   const str = 'a'.repeat(32)
@@ -131,6 +130,33 @@ Deno.test('Username - security very long input rejected quickly', () => {
   assert(Username.normalize(longStr) === null)
 })
 
+Deno.test('Username - valid boundary maxLength 32', () => {
+  const longStr = 'a'.repeat(32)
+  assert(Username.isValid(longStr))
+  assertFalse(Username.isValid('a'.repeat(33)))
+})
+
+Deno.test('Username - valid boundary minLength 3', () => {
+  assert(Username.isValid('abc'))
+  assertFalse(Username.isValid('ab'))
+})
+
+Deno.test('Username - valid mixed case normalized to lowercase', () => {
+  assert(Username.normalize('JaneDoe') === 'janedoe')
+  assert(Username.normalize('USER_1') === 'user_1')
+})
+
+Deno.test('Username - valid only digits', () => {
+  assert(Username.isValid('123'))
+  assert(Username.normalize('  456  ') === '456')
+})
+
+Deno.test('Username - valid only underscore', () => {
+  assertFalse(Username.isValid('_'))
+  assert(Username.isValid('___'))
+  assert(Username.normalize('  A_B_C  ') === 'a_b_c')
+})
+
 Deno.test('Username - validate collects all rule errors', () => {
   const result = Username.validate('@')
   assertFalse(result.valid)
@@ -161,31 +187,4 @@ Deno.test('Username - validate trim then check length and pattern', () => {
   const result = Username.validate('  ab  ')
   assertFalse(result.valid)
   assert(result.errors.includes('Username must be at least 3 characters'))
-})
-
-Deno.test('Username - valid boundary maxLength 32', () => {
-  const longStr = 'a'.repeat(32)
-  assert(Username.isValid(longStr))
-  assertFalse(Username.isValid('a'.repeat(33)))
-})
-
-Deno.test('Username - valid boundary minLength 3', () => {
-  assert(Username.isValid('abc'))
-  assertFalse(Username.isValid('ab'))
-})
-
-Deno.test('Username - valid mixed case normalized to lowercase', () => {
-  assert(Username.normalize('JaneDoe') === 'janedoe')
-  assert(Username.normalize('USER_1') === 'user_1')
-})
-
-Deno.test('Username - valid only digits', () => {
-  assert(Username.isValid('123'))
-  assert(Username.normalize('  456  ') === '456')
-})
-
-Deno.test('Username - valid only underscore', () => {
-  assertFalse(Username.isValid('_'))
-  assert(Username.isValid('___'))
-  assert(Username.normalize('  A_B_C  ') === 'a_b_c')
 })
