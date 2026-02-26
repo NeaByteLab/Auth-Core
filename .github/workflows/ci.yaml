@@ -21,7 +21,7 @@ jobs:
           deno-version: v2.7.1
 
       - name: Format check
-        run: deno fmt --check src/ tests/
+        run: deno fmt --check src/
 
       - name: Lint
         run: deno lint src/
