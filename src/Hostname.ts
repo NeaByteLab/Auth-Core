@@ -141,7 +141,7 @@ export class Hostname {
       try {
         new URL(`http://${hostname}`)
       } catch {
-        errors.push('Hostname contains invalid IDNA (punycode) label')
+        errors.push('Hostname contains invalid IDNA label')
       }
     }
     return errors

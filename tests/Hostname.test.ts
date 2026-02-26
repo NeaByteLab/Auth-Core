@@ -34,7 +34,7 @@ Deno.test('Hostname - reject empty string', () => {
   assert(Hostname.normalize('') === null)
 })
 
-Deno.test('Hostname - reject invalid IDNA punycode', () => {
+Deno.test('Hostname - reject invalid IDNA label', () => {
   assertFalse(Hostname.isValid('xn--invalid-punycode!!!.com'))
   const resultDot = Hostname.validate('xn--.')
   assertFalse(resultDot.valid)
@@ -96,7 +96,7 @@ Deno.test('Hostname - valid FQDN for SNI', () => {
   assert(Hostname.normalize('  API.Example.COM  ') === 'api.example.com')
 })
 
-Deno.test('Hostname - valid IDNA punycode', () => {
+Deno.test('Hostname - valid IDNA label', () => {
   assert(Hostname.isValid('xn--mnchen-3ya.de'))
   assert(Hostname.normalize('  XN--MNCHEN-3YA.DE  ') === 'xn--mnchen-3ya.de')
 })
