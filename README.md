@@ -10,12 +10,12 @@ Auth validation, normalization, and generation for the Deno runtime.
 
 ## Features
 
-- **Cipher** — AES-256-GCM encrypt/decrypt with shared secret (PBKDF2, base64url).
-- **Email** — Format validation, normalize, get domain/local part; optional display name and international.
-- **Fullname** — Letters, space, hyphen, apostrophe (subset aligned with RFC 6350/7700); optional digits and title-case.
-- **Hostname** — SNI/DNS (subset aligned with RFC 1035, 1123); trim and lowercase.
-- **Password** — Length and optional rules; strength score; random generate.
-- **Username** — Letters, numbers, underscore; trim and lowercase.
+- **Cipher** — Encrypt and decrypt with a shared secret; URL-safe output.
+- **Email** — Validate, normalize, and extract domain or local part.
+- **Fullname** — Validate and normalize human names with optional formatting.
+- **Hostname** — Validate and normalize hostnames (e.g. for TLS or DNS).
+- **Password** — Validate rules, score strength, or generate random passwords.
+- **Username** — Validate and normalize usernames (letters, numbers, underscore).
 
 ## Installation
 
