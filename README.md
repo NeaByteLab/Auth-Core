@@ -2,9 +2,9 @@
 
 # Auth Core
 
-Auth validation, normalization, and generation for the Deno runtime.
+Auth validation, normalization, and generation for modern runtimes.
 
-[![Module type: Deno/ESM](https://img.shields.io/badge/module%20type-deno%2Fesm-brightgreen)](https://github.com/NeaByteLab/Auth-Core) [![JSR](https://jsr.io/badges/@neabyte/auth-core)](https://jsr.io/@neabyte/auth-core) [![CI](https://github.com/NeaByteLab/Auth-Core/actions/workflows/ci.yaml/badge.svg)](https://github.com/NeaByteLab/Auth-Core/actions/workflows/ci.yaml) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Module type: Deno/ESM](https://img.shields.io/badge/module%20type-deno%2Fesm-brightgreen)](https://github.com/NeaByteLab/Auth-Core) [![npm version](https://img.shields.io/npm/v/@neabyte/auth-core.svg)](https://www.npmjs.org/package/@neabyte/auth-core) [![JSR](https://jsr.io/badges/@neabyte/auth-core)](https://jsr.io/@neabyte/auth-core) [![CI](https://github.com/NeaByteLab/Auth-Core/actions/workflows/ci.yaml/badge.svg)](https://github.com/NeaByteLab/Auth-Core/actions/workflows/ci.yaml) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 </div>
 
@@ -20,12 +20,29 @@ Auth validation, normalization, and generation for the Deno runtime.
 
 ## Installation
 
-> [!IMPORTANT]
-> **Prerequisites:** [Deno](https://deno.com/) installed.
+### Deno
 
 ```bash
 deno add jsr:@neabyte/auth-core
 ```
+
+### npm
+
+```bash
+npm install @neabyte/auth-core
+```
+
+### CDN (browser / any ESM)
+
+```html
+<script type="module">
+  import { Email, Password, Username } from 'https://esm.sh/@neabyte/auth-core'
+  // or pin version: .../auth-core@x.x.x
+</script>
+```
+
+- Latest: `https://esm.sh/@neabyte/auth-core`
+- Pinned: `https://esm.sh/@neabyte/auth-core@<version>`
 
 ## Quick Start
 

@@ -1,0 +1,71 @@
+{
+  "name": "@neabyte/auth-core",
+  "version": "0.2.1",
+  "description": "Auth validation, normalization, and generation for modern runtimes",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "unbuild --minify",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "rm -rf dist && npm run build"
+  },
+  "keywords": [
+    "api",
+    "auth",
+    "authentication",
+    "credentials",
+    "deno",
+    "email",
+    "form-validation",
+    "javascript",
+    "jsr",
+    "library",
+    "normalization",
+    "password",
+    "runtime",
+    "security",
+    "typescript",
+    "user-auth",
+    "username",
+    "validation",
+    "validator"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "unbuild": "^3.6.1"
+  },
+  "author": {
+    "name": "NeaByteLab",
+    "email": "me@neabyte.com",
+    "url": "https://github.com/NeaByteLab"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NeaByteLab/Auth-Core.git"
+  },
+  "bugs": {
+    "url": "https://github.com/NeaByteLab/Auth-Core/issues"
+  },
+  "homepage": "https://github.com/NeaByteLab/Auth-Core#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

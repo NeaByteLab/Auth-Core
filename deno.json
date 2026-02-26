@@ -1,6 +1,6 @@
 {
   "name": "@neabyte/auth-core",
-  "description": "Email and password validation, normalization, and generation for Deno",
+  "description": "Auth validation, normalization, and generation for modern runtimes",
   "version": "0.2.1",
   "type": "module",
   "license": "MIT",
