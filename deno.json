@@ -1,7 +1,7 @@
 {
   "name": "@neabyte/auth-core",
   "description": "Auth validation, normalization, and generation for modern runtimes",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "license": "MIT",
   "exports": "./src/index.ts",

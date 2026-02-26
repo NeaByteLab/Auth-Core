@@ -1,6 +1,6 @@
 {
   "name": "@neabyte/auth-core",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Auth validation, normalization, and generation for modern runtimes",
   "type": "module",
   "main": "dist/index.cjs",
