@@ -1,10 +1,9 @@
-import punycode from 'node:punycode'
 import type * as Types from '@app/Types.ts'
 import { Utils } from '@app/index.ts'
 
 /**
  * Hostname validation and normalization for SNI and DNS.
- * @description RFC 1035, 1123, 6066, 5890; labels and IDNA.
+ * @description RFC 1035, 1123, 6066; labels and IDNA via WHATWG URL.
  */
 export class Hostname {
   /** Private constructor to prevent instantiation */
@@ -140,7 +139,7 @@ export class Hostname {
     }
     if (errors.length === 0 && labels.some((l) => l.startsWith('xn--'))) {
       try {
-        punycode.toUnicode(hostname)
+        new URL(`http://${hostname}`)
       } catch {
         errors.push('Hostname contains invalid IDNA (punycode) label')
       }
