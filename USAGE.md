@@ -11,6 +11,7 @@ Options, examples, and API reference for `@neabyte/auth-core`.
 - [Fullname](#fullname)
 - [Hostname](#hostname)
 - [Password](#password)
+- [Pin](#pin)
 - [Username](#username)
 - [Utils](#utils)
 - [API Reference](#api-reference)
@@ -53,6 +54,9 @@ Username.normalize('  Jane_Doe  ')
 | [`Password.isValid`](#passwordisvalid)                     | Password | Returns true when password meets length and require\* rules.            |
 | [`Password.strength`](#passwordstrength)                   | Password | Returns `{ category, score }` for strength (weak/medium/strong).        |
 | [`Password.validate`](#passwordvalidate)                   | Password | Returns `{ valid, errors }` with detailed messages.                     |
+| [`Pin.isValid`](#pinisvalid)                               | Pin      | Returns true when PIN is digits only and within length range.           |
+| [`Pin.normalize`](#pinnormalize)                           | Pin      | Trims PIN; returns null if invalid.                                     |
+| [`Pin.validate`](#pinvalidate)                             | Pin      | Returns `{ valid, errors }` with detailed messages.                     |
 | [`Username.isValid`](#usernameisvalid)                     | Username | Returns true when length and pattern (letters, numbers, \_) are valid.  |
 | [`Username.normalize`](#usernamenormalize)                 | Username | Trims and lowercases; returns null if invalid.                          |
 | [`Username.validate`](#usernamevalidate)                   | Username | Returns `{ valid, errors }` with detailed messages.                     |
@@ -178,6 +182,35 @@ Password.strength('p4ssW0rd!')
 Password.generate({ minLength: 12, requireUppercase: true, requireDigit: true })
 // e.g. 'Kx7mNp2Qw9Lb'
 ```
+
+## Pin
+
+Validate and normalize numeric PINs (digits only). Options: `minLength`, `maxLength` (default 4–8). Trim-only normalization; no case change.
+
+```typescript
+import { Pin } from '@neabyte/auth-core'
+
+Pin.isValid('1234')
+// true
+
+Pin.normalize('  1234  ')
+// '1234'
+
+Pin.validate('12ab', { minLength: 4, maxLength: 8 })
+// { valid: false, errors: ['PIN must contain only digits'] }
+```
+
+With custom length options:
+
+```typescript
+Pin.isValid('123', { minLength: 3, maxLength: 6 })
+// true
+
+Pin.normalize('  123  ', { minLength: 3, maxLength: 6 })
+// '123'
+```
+
+Invalid length or non-digits yield `false` / `null` / `{ valid: false, errors: [...] }`.
 
 ## Username
 
@@ -407,6 +440,39 @@ Password.validate(password, options?)
 - `password` `<string>`: Password string to validate.
 - `options` `<PasswordOptions>`: (Optional) Length and require\* rules. Defaults to `{}`.
 - Returns: `PasswordResult` (`{ valid: boolean, errors: string[] }`)
+- Returns validation result with list of error messages.
+
+### Pin.isValid
+
+```typescript
+Pin.isValid(pin, options?)
+```
+
+- `pin` `<string>`: PIN string to validate.
+- `options` `<PinOptions>`: (Optional) minLength and maxLength. Defaults to `{}`. Effective defaults are 4–8.
+- Returns: `boolean`
+- Returns true when PIN is digits only and length within range.
+
+### Pin.normalize
+
+```typescript
+Pin.normalize(pin, options?)
+```
+
+- `pin` `<string>`: PIN string to normalize.
+- `options` `<PinOptions>`: (Optional) minLength and maxLength. Defaults to `{}`. Effective defaults are 4–8.
+- Returns: `string | null`
+- Trims whitespace. Returns null if invalid.
+
+### Pin.validate
+
+```typescript
+Pin.validate(pin, options?)
+```
+
+- `pin` `<string>`: PIN string to validate.
+- `options` `<PinOptions>`: (Optional) minLength and maxLength. Defaults to `{}`. Effective defaults are 4–8.
+- Returns: `PinResult` (`{ valid: boolean, errors: string[] }`)
 - Returns validation result with list of error messages.
 
 ### Username.isValid

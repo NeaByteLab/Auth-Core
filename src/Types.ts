@@ -77,6 +77,12 @@ export type PasswordStrengthResult = {
   score: number
 }
 
+/** PIN validation options. */
+export type PinOptions = MinMaxOptions
+
+/** PIN validation result. */
+export type PinResult = ValidationResult
+
 /** Resolved fullname options. */
 export type ResolvedFullnameOptions = ResolvedMinMax & {
   /** Digits allowed */
@@ -107,6 +113,9 @@ export type ResolvedPasswordOptions = ResolvedMinMax & {
   /** Uppercase required */
   requireUppercase: boolean
 }
+
+/** Resolved PIN options. */
+export type ResolvedPinOptions = ResolvedMinMax
 
 /** Resolved username options. */
 export type ResolvedUsernameOptions = ResolvedMinMax

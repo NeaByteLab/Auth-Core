@@ -15,6 +15,7 @@ Auth validation, normalization, and generation for the Deno runtime.
 - **Fullname** — Validate and normalize human names with optional formatting.
 - **Hostname** — Validate and normalize hostnames (e.g. for TLS or DNS).
 - **Password** — Validate rules, score strength, or generate random passwords.
+- **Pin** — Validate and normalize numeric PINs (e.g. 4–8 digits).
 - **Username** — Validate and normalize usernames (letters, numbers, underscore).
 
 ## Installation
@@ -48,7 +49,7 @@ Username.normalize('  Jane_Doe  ')
 ```
 
 > [!NOTE]
-> More details: [USAGE.md](USAGE.md)
+> TypeScript types (e.g. `PinResult`, `PasswordOptions`) are exported. More details: [USAGE.md](USAGE.md)
 
 ## Build & Test
 
